@@ -1,0 +1,5 @@
+.forum
+
+*.pyc
+__pycache__/
+
