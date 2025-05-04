@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Комментарии к посту{% endblock title %}
+
+{% block content %}
+  <div class="container">
+    <h1 style="text-align: center; margin-bottom: 20px;">Система комментариев</h1>
+
+    <div class="comment-form">
+      {% csrf_token %}
+      <h2 class="comment-form-title">Оставить комментарий</h2>
+      <div class="tag-buttons">
+        <button id="insert-italic" type="button">Курсив</button>
+        <button id="insert-bold" type="button">Жирный</button>
+        <button id="insert-code" type="button">Код</button>
+        <button id="insert-link" type="button">Ссылка</button>
+      </div>    
+      <textarea id="comment-text" class="comment-textarea" placeholder="Введите текст комментария..."></textarea>
+
+      <div class="user-info">
+        <input type="text" id="user-name" placeholder="Ваше имя">
+        <input type="email" id="user-email" placeholder="Email">      
+        <button id="submit-comment" class="submit-button">Отправить</button>
+      </div>
+      <div class="attachments-section">
+        <label for="file-upload" class="file-upload-label">
+          <i class="fas fa-paperclip"></i>
+          <span>Прикрепить файл</span>
+        </label>
+        <input type="file" id="file-upload" multiple accept="image/jpeg,image/png,image/gif,text/plain" style="display: none;">
+        <div id="attachments-preview" class="attachments-preview"></div>
+      </div>
+
+      {% comment %} <div class="captcha-container">
+        <div id="captcha-question" class="captcha-question">Решите капчу: 2 + 3 = ?</div>
+        <div class="captcha-input">
+          <input type="text" id="captcha-answer" placeholder="Введите ответ">
+          <button id="refresh-captcha">Обновить</button>
+        </div>
+      </div> {% endcomment %}
+
+    </div>
+
+    <div id="comments-list" class="comments-container"></div>
+    <div id="toast-container" class="toast-container"></div>
+  </div>
+  
+  <div id="captcha-modal" class="modal-overlay" style="display: none;">
+    <div class="modal-window">
+      <h3>Подтвердите, что вы не робот</h3>
+      <img id="captcha-img" src="/captcha/" alt="Капча">
+      <input type="text" id="captcha-input" placeholder="Введите текст с картинки">
+      <div class="modal-buttons">
+        <button id="confirm-captcha">Подтвердить</button>
+        <button id="refresh-captcha">Обновить</button>
+        <button id="close-captcha">Закрыть</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="{% static 'js/comment-system.js' %}"></script>
+{% endblock content %}
+
+<div class="reply-form">
+  <textarea class="reply-text comment-textarea" placeholder="Введите ваш ответ..."></textarea>
+  <div class="user-info">
+    <input type="text" class="reply-name" placeholder="Ваше имя">
+    <input type="email" class="reply-email" placeholder="Email">
+  </div>
+  <div class="attachments-section">
+    <label class="file-upload-label">
+      <i class="fas fa-paperclip"></i>
+      <span>Прикрепить файл</span>
+    </label>
+    <input type="file" class="reply-file-upload" multiple accept="image/jpeg,image/png,image/gif,text/plain" style="display: none;">
+    <div class="reply-attachments-preview attachments-preview"></div>
+  </div>
+  <div style="display: flex; gap: 10px; margin-top: 10px;">
+    <button class="submit-reply submit-button">Ответить</button>
+    <button class="cancel-reply action-button">Отменить</button>
+  </div>
+</div>

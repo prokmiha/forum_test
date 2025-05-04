@@ -1,5 +1,3 @@
-version: '3.9'
-
 services:
   db:
     image: mysql:8
@@ -26,6 +24,51 @@ services:
       - "8000:8000"
     depends_on:
       - db
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - PYTHONPATH=/app/forum
+    env_file:
+      - .env
+
+  daphne:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: forum-daphne
+    command: daphne -b 0.0.0.0 -p 8001 forum.asgi:application
+    volumes:
+      - .:/app
+    ports:
+      - "8001:8001"
+    depends_on:
+      - redis
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - PYTHONPATH=/app/forum
+    env_file:
+      - .env
+
+  redis:
+    image: redis:latest
+    container_name: redis
+    ports:
+      - "6379:6379"
+    restart: always
+
+  celery:
+    build: .
+    container_name: forum-celery
+    working_dir: /app/forum
+    command: celery -A forum worker --loglevel=info
+    volumes:
+      - .:/app
+    depends_on:
+      - redis
+      - backend
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - PYTHONPATH=/app/forum
     env_file:
       - .env
 

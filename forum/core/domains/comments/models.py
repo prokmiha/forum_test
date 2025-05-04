@@ -6,7 +6,9 @@ class Comment(models.Model):
     homepage = models.URLField(blank=True)
     text = models.TextField()
     parent = models.ForeignKey(to="self", null=True, blank=True, related_name="replies", on_delete=models.CASCADE)
-    created_at = models.DateField(auto_now_add=True)
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    main_thread = models.IntegerField(null=True, blank=True)
 
     class Meta:
         ordering = ["-created_at"]

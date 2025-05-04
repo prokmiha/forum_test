@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <title>{% block title %}Комментарии{% endblock title %}</title>
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/comment-system.css' %}">
+</head>
+
+<body>
+    {% block content %}{% endblock content %}
+    <script type="module" src="{% static 'js/comment-system.js' %}"></script>
+</body>
+</html>
