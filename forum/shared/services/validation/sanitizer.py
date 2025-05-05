@@ -15,10 +15,14 @@ def clean_html(text: str) -> str:
     return cleaned
 
 def validate_user_name(name: str):
+    import logging
+    logging.critical(f"1 - {name}")
     if not name or len(name.strip()) < 3:
         raise ValueError("Имя должно содержать минимум 3 символа.")
 
-    if not re.match(r'^[A-Za-zА-Яа-я0-9]+$', name.strip()):
+    if not re.match(r'^[A-Za-zА-Яа-я0-9\s]+$', name.strip()):
+        import logging
+        logging.critical(f"2 - {name}")
         raise ValueError("Имя может содержать только латиницу, кириллицу и цифры.")
 
 def validate_email_address(email: str):
@@ -28,6 +32,8 @@ def validate_email_address(email: str):
         raise ValueError("Введите корректный email.")
 
 def sanitize_comment_data(data: dict) -> dict:
+    import logging
+    logging.critical(f"3 - {data}")
     validate_user_name(data.get("user_name", ""))
 
     if email := data.get("email"):

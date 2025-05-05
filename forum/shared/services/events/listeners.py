@@ -5,7 +5,6 @@ from .tasks import log_event
 def bind_event(signal, label):
     @signal.connect
     def handler(sender, **kwargs):
-        print(f"[debug] signal triggered: {label}")
         kwargs.pop('signal', None)
         log_event.delay(label, kwargs)
     return handler

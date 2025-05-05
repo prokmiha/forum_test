@@ -3,14 +3,16 @@ from rest_framework.response import Response
 from rest_framework import status
 from django.utils.timezone import now
 from urllib.parse import urlencode
-from shared.services.events.events import captcha_failed
+from django.core.cache import cache
 
 from .models import Comment
 from .serializers import CommentSerializer, ReplySerializer
 from shared.services.attachment.models import Attachments
 from shared.services.validation.sanitizer import sanitize_comment_data
 from shared.services.cache.cache_service import CommentCacheService
+from shared.services.events.events import captcha_failed
 
+import logging
 
 class CommentsAPIView(APIView):
     def get(self, request):
@@ -26,11 +28,26 @@ class CommentsAPIView(APIView):
                 c["replies"] = c.get("replies", [])
                 c["has_more_replies"] = c.get("has_more_replies", False)
 
-            CommentCacheService.set_top_comments(all_comments)
+            CommentCacheService.set_top_comments(all_comments, top_level_comments)
 
         limit = int(request.GET.get("limit", 25))
         offset = int(request.GET.get("offset", 0))
         count = len(all_comments)
+
+        # Форс-проверка корректности кэша
+        actual_ids = list(
+            Comment.objects
+            .filter(parent__isnull=True)
+            .order_by('-created_at')
+            .values_list('id', flat=True)[offset:offset + limit]
+        )
+        cached_ids = [c["id"] for c in all_comments[offset:offset + limit]]
+
+        if actual_ids != cached_ids:
+            # кэш поврежден — пересоздаем
+            CommentCacheService.build_and_store_top_comments()
+            all_comments = cache.get("comment:top") or []
+
         page = all_comments[offset:offset + limit]
 
         def build_link(new_offset):
@@ -56,39 +73,57 @@ class CommentsAPIView(APIView):
 
 class CommentRepliesAPIView(APIView):
     def get(self, request, parent_id):
-        MAX_LIMIT = 5
+        logging.error("get")
         MAX_LIMIT_CACHE = 50
         offset = int(request.GET.get('offset', 0))
         limit = min(int(request.GET.get('limit', 3)), MAX_LIMIT_CACHE)
+        logging.error(f"get {offset}/{limit}")
 
-        cached = CommentCacheService.get_replies(parent_id, offset, limit)
+        cached = CommentCacheService.get_replies(parent_id)
         if cached:
-            return Response(cached)
+            return Response({
+                "results": cached["results"][offset:offset + limit],
+                "total": cached["total"],
+                "offset": offset,
+                "limit": limit,
+                "has_more": offset + limit < cached["total"],
+            })
+        logging.error(f"get=False {cached}")
 
         replies = Comment.objects.filter(parent_id=parent_id).order_by('-created_at')
         total = replies.count()
         subset = replies[offset:offset + limit]
-        serializer = CommentSerializer(subset, many=True)
+        serializer = ReplySerializer(subset, many=True)
+        logging.error(f"get {total}")
 
         data = {
-            "results": serializer.data,
+            "results": serializer.data,  # не обрезаем!
             "has_more": offset + limit < total,
+            "total": total,
+            "offset": 0,
+            "limit": limit,  # не критично, можно оставить 3
+        }
+
+        CommentCacheService.set_replies(parent_id, data)
+        print(123)
+        logging.critical(data["results"][offset:offset + limit])
+        return Response({
+            "results": data["results"][offset:offset + limit],
             "total": total,
             "offset": offset,
             "limit": limit,
-        }
-
-        CommentCacheService.set_replies(parent_id, offset, limit, data)
-        return Response(data)
+            "has_more": offset + limit < total,
+        })
 
     def post(self, request, parent_id):
+        logging.critical(f"called with parent_id={parent_id} and request_data={request.data}")
         return processor(request=request, parent_id=parent_id)
 
 
 def processor(request, parent_id=None):
     captcha_value = request.data.get("captcha_value")
     captcha_text = request.session.get("captcha_text")
-
+    logging.critical(f"processor called with parent_id={parent_id} and request_data={request.data}")
     if not captcha_value or captcha_value.lower() != (captcha_text or "").lower():
         captcha_failed.send(sender=None, ip=request.META.get('REMOTE_ADDR'), value=captcha_value)
         return Response({"error": "Неверная капча"}, status=status.HTTP_400_BAD_REQUEST)
@@ -107,6 +142,8 @@ def processor(request, parent_id=None):
 
     if serializer.is_valid():
         instance = serializer.save()
+
+        CommentCacheService.handle_new_comment(instance)
 
         if not parent_id:
             data = CommentSerializer(instance).data

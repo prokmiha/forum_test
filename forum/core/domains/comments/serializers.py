@@ -1,5 +1,3 @@
-import logging
-
 from rest_framework import serializers
 from django.conf import settings
 
@@ -38,9 +36,7 @@ class CommentSerializer(serializers.ModelSerializer):
             validated_data["main_thread"] = parent.main_thread or parent.id
 
         instance = super().create(validated_data)
-        logging.critical("calling send_comment_to_ws")
         send_comment_to_ws(CommentSerializer(instance).data)
-        logging.critical("done send_comment_to_ws")
         return instance
 
     def get_replies(self, obj):
@@ -81,9 +77,7 @@ class ReplySerializer(serializers.ModelSerializer):
             validated_data["main_thread"] = parent.main_thread or parent.id
 
         instance = super().create(validated_data)
-        logging.critical("calling send_comment_to_ws for reply")
         send_comment_to_ws(CommentSerializer(instance).data)
-        logging.critical("done send_comment_to_ws for reply")
         return instance
 
     def get_reply_count(self, obj):
