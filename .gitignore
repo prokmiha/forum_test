@@ -1,32 +1,17 @@
 __pycache__/
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
+*.pyc
 
 media/
 static/
 attachments/
 
+.env
 venv/
 ENV/
 env/
-.env
 
 .idea/
 .vscode/
-
 .forum
-*.pyc
 
-js_test
-
+*.egg-info/

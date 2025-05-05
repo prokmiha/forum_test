@@ -1,5 +1,4 @@
 import os
-import logging
 
 from rest_framework import serializers
 from .models import Attachments
@@ -13,7 +12,6 @@ class AttachmentSerializer(serializers.ModelSerializer):
     @staticmethod
     def validate_file(uploaded_file):
         ext = os.path.splitext(uploaded_file.name)[1].lower()
-        logging.critical(f"validate_file in AttachmentSerializer - ext: {ext}")
 
         if ext not in Attachments.ALLOWED_IMAGE_EXT + Attachments.ALLOWED_TEXT_EXT:
             raise serializers.ValidationError("Недопустимый формат файла.")

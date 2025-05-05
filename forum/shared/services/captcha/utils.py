@@ -18,22 +18,17 @@ def captcha_image(text):
     except IOError:
         font = ImageFont.load_default()
 
-    # Вычислить размер текста
     bbox = draw.textbbox((0, 0), text, font=font)
     text_width = bbox[2] - bbox[0]
     text_height = bbox[3] - bbox[1]
 
-    # Центрировать
     x = (width - text_width) // 2
     y = (height - text_height) // 2
 
-    # Тень
     draw.text((x+1, y+1), text, font=font, fill=(180, 180, 180))
 
-    # Основной текст
     draw.text((x, y), text, font=font, fill=(10, 10, 10))
 
-    # Вернуть как bytes
     output = BytesIO()
     image.save(output, format='PNG')
     output.seek(0)

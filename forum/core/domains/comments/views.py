@@ -10,9 +10,8 @@ from .serializers import CommentSerializer, ReplySerializer
 from shared.services.attachment.models import Attachments
 from shared.services.validation.sanitizer import sanitize_comment_data
 from shared.services.cache.cache_service import CommentCacheService
-from shared.services.events.events import captcha_failed
+from shared.services.events.events import captcha_failed, reply_created
 
-import logging
 
 class CommentsAPIView(APIView):
     def get(self, request):
@@ -34,7 +33,6 @@ class CommentsAPIView(APIView):
         offset = int(request.GET.get("offset", 0))
         count = len(all_comments)
 
-        # Форс-проверка корректности кэша
         actual_ids = list(
             Comment.objects
             .filter(parent__isnull=True)
@@ -44,7 +42,6 @@ class CommentsAPIView(APIView):
         cached_ids = [c["id"] for c in all_comments[offset:offset + limit]]
 
         if actual_ids != cached_ids:
-            # кэш поврежден — пересоздаем
             CommentCacheService.build_and_store_top_comments()
             all_comments = cache.get("comment:top") or []
 
@@ -73,11 +70,9 @@ class CommentsAPIView(APIView):
 
 class CommentRepliesAPIView(APIView):
     def get(self, request, parent_id):
-        logging.error("get")
         MAX_LIMIT_CACHE = 50
         offset = int(request.GET.get('offset', 0))
         limit = min(int(request.GET.get('limit', 3)), MAX_LIMIT_CACHE)
-        logging.error(f"get {offset}/{limit}")
 
         cached = CommentCacheService.get_replies(parent_id)
         if cached:
@@ -88,25 +83,22 @@ class CommentRepliesAPIView(APIView):
                 "limit": limit,
                 "has_more": offset + limit < cached["total"],
             })
-        logging.error(f"get=False {cached}")
 
         replies = Comment.objects.filter(parent_id=parent_id).order_by('-created_at')
         total = replies.count()
         subset = replies[offset:offset + limit]
         serializer = ReplySerializer(subset, many=True)
-        logging.error(f"get {total}")
 
         data = {
-            "results": serializer.data,  # не обрезаем!
+            "results": serializer.data,
             "has_more": offset + limit < total,
             "total": total,
             "offset": 0,
-            "limit": limit,  # не критично, можно оставить 3
+            "limit": limit,
         }
 
         CommentCacheService.set_replies(parent_id, data)
         print(123)
-        logging.critical(data["results"][offset:offset + limit])
         return Response({
             "results": data["results"][offset:offset + limit],
             "total": total,
@@ -116,14 +108,12 @@ class CommentRepliesAPIView(APIView):
         })
 
     def post(self, request, parent_id):
-        logging.critical(f"called with parent_id={parent_id} and request_data={request.data}")
         return processor(request=request, parent_id=parent_id)
 
 
 def processor(request, parent_id=None):
     captcha_value = request.data.get("captcha_value")
     captcha_text = request.session.get("captcha_text")
-    logging.critical(f"processor called with parent_id={parent_id} and request_data={request.data}")
     if not captcha_value or captcha_value.lower() != (captcha_text or "").lower():
         captcha_failed.send(sender=None, ip=request.META.get('REMOTE_ADDR'), value=captcha_value)
         return Response({"error": "Неверная капча"}, status=status.HTTP_400_BAD_REQUEST)
@@ -161,6 +151,7 @@ def processor(request, parent_id=None):
             CommentCacheService.invalidate_nested_replies(parent_id)
 
         response_serializer = ReplySerializer(instance) if parent_id else CommentSerializer(instance)
+        reply_created.send(sender=instance, ip=request.META.get('REMOTE_ADDR'), data=response_serializer.data)
         return Response(response_serializer.data, status=status.HTTP_201_CREATED)
 
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
