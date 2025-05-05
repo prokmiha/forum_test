@@ -1,3 +1,8 @@
+Ссылка на видео - https://drive.google.com/drive/folders/1fU-QX4APLIFXAEC3S7e1L6hn6_pkrm0b?usp=drive_link
+Проект задеплоен на моем личном VSP и доступен по адресу - http://185.205.210.138:8000/comment/
+
+---
+
 # 1. Инструкция по запуску проекта
 Этот проект использует Django, Docker, MySQL и Redis. Все зависимости и сервисы описаны в docker-compose.yml.
 
