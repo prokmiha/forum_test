@@ -1,4 +1,4 @@
-Ссылка на видео - https://drive.google.com/drive/folders/1fU-QX4APLIFXAEC3S7e1L6hn6_pkrm0b?usp=drive_link
+Ссылка на видео - https://drive.google.com/drive/folders/1fU-QX4APLIFXAEC3S7e1L6hn6_pkrm0b
 
 Проект задеплоен на моем личном VSP и доступен по адресу - http://185.205.210.138:8000/comment/
 
